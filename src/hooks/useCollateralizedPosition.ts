@@ -43,7 +43,6 @@ export const useCollateralizedPosition = (pubkey: PublicKey | null) => {
                         }
                     })
                     const {borrowApy, depositApy} = getInterestAndUtilization(reserve);
-                    console.log({reserve})
                     const cp: CollateralizedPosition = {
                         platform: "Larix", 
                         amount: eX(deposit.depositedAmount.toNumber(), -reserve.info.liquidity.mintDecimals).toNumber(),
