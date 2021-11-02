@@ -3,11 +3,10 @@ import {PublicKey} from "@solana/web3.js";
 import {useCallback, useEffect, useState} from "react";
 import {getObligation} from "../larix-api/provider/obligationProvider";
 import {getLendingReserve} from "../larix-api/provider/lendingReserveProvider";
-import {Detail, ObligationCollateral, ObligationLiquidity, Reserve} from "../larix-api/models";
+import {Detail, Reserve} from "../larix-api/models";
 import {getInterest} from "../larix-api/utils/rateModel";
 import {getUtilizationRate} from "../larix-api/utils/calculateAllMine";
 import { eX } from '../larix-api/utils/helpers';
-import BigNumber from 'bignumber.js';
 
 
 export const useCollateralizedPosition = (pubkey: PublicKey | null) => {
