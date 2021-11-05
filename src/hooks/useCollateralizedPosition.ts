@@ -7,7 +7,7 @@ import {Detail, Reserve} from "../larix-api/models";
 import {getInterest} from "../larix-api/utils/rateModel";
 import {getUtilizationRate} from "../larix-api/utils/calculateAllMine";
 import { eX } from '../larix-api/utils/helpers';
-
+import {getMining} from '../larix-api/provider/miningProvider'
 
 export const useCollateralizedPosition = (pubkey: PublicKey | null) => {
     const [collateralizedPositions, setCollateralizedPositions] = useState([] as CollateralizedPosition[]);
@@ -33,44 +33,60 @@ export const useCollateralizedPosition = (pubkey: PublicKey | null) => {
         if (pubkey) {
             const larixObligations = await getObligation(pubkey);
             const lendingReserves = await getLendingReserve();
+            const userMines = await getMining(pubkey);
+            const lendingReserveMap: Map<string, Detail<Reserve>>  = new Map();
+            lendingReserves.forEach(reserve => lendingReserveMap.set(reserve.pubkey.toString(), reserve));
+
+            userMines.forEach(mine => {
+                mine.info.miningIndices.forEach(index => {
+                    const reserve = lendingReserveMap.get(index.reserve.toString())
+                    if(reserve){ 
+                        const {borrowApy, depositApy} = getInterestAndUtilization(reserve);
+                        const cp: CollateralizedPosition = {
+                            platform: "Larix",
+                            amount: eX(index.unCollLTokenAmount.toNumber(), -reserve.info.liquidity.mintDecimals).toNumber(),
+                            mint: reserve.info.liquidity.mintPubkey.toString(),
+                            borrowApy,
+                            depositApy,
+                            supplied: true,
+                        }
+                        setCollateralizedPositions((prev) => [...prev, cp])
+                    }
+                })
+            })
+
             larixObligations.forEach(obligation => {
                 obligation.info.deposits.forEach(deposit => {
-                    let reserve: Detail<Reserve> = {} as Detail<Reserve>;
-                    lendingReserves.forEach(res => {
-                        if (res.pubkey.equals(deposit.depositReserve)){
-                           reserve = res;
+                    const reserve = lendingReserveMap.get(deposit.depositReserve.toString())
+                    if(reserve){
+                        const {borrowApy, depositApy} = getInterestAndUtilization(reserve);
+                        const cp: CollateralizedPosition = {
+                            platform: "Larix", 
+                            amount: eX(deposit.depositedAmount.toNumber(), -reserve.info.liquidity.mintDecimals).toNumber(),
+                            mint: reserve?.info.collateral.mintPubkey.toString(),
+                            borrowApy, 
+                            depositApy, 
+                            supplied: true
                         }
-                    })
-                    const {borrowApy, depositApy} = getInterestAndUtilization(reserve);
-                    const cp: CollateralizedPosition = {
-                        platform: "Larix", 
-                        amount: eX(deposit.depositedAmount.toNumber(), -reserve.info.liquidity.mintDecimals).toNumber(),
-                        mint: reserve?.info.collateral.mintPubkey.toString(),
-                        borrowApy, 
-                        depositApy, 
-                        supplied: true
+                        setCollateralizedPositions((prev) => [...prev, cp])
                     }
-                    setCollateralizedPositions((prev) => [...prev, cp])
                 })
 
                 obligation.info.borrows.forEach(borrow => {
-                    let borrowReserve: Detail<Reserve> = {} as Detail<Reserve>;
-                    lendingReserves.forEach(res => {
-                        if (res.pubkey.equals(borrow.borrowReserve)){
-                            borrowReserve = res;
+                    const borrowReserve = lendingReserveMap.get(borrow.borrowReserve.toString())
+                    if(borrowReserve) {
+                        const {borrowApy, depositApy} = getInterestAndUtilization(borrowReserve);
+                        let amount = eX(borrow.borrowedAmountWads.toString(),-18)
+                        const cp: CollateralizedPosition = {
+                            platform: "Larix", 
+                            amount: amount.shiftedBy(-borrowReserve.info.liquidity.mintDecimals).toNumber(),
+                            mint: borrowReserve.info.liquidity.mintPubkey.toString(),
+                            borrowApy,
+                            depositApy, 
+                            supplied: false
                         }
-                    })
-                    const {borrowApy, depositApy} = getInterestAndUtilization(borrowReserve);
-                    let amount = eX(borrow.borrowedAmountWads.toString(),-18)
-                    const cp: CollateralizedPosition = {
-                        platform: "Larix", 
-                        amount: amount.shiftedBy(-borrowReserve.info.liquidity.mintDecimals).toNumber(),
-                        mint: borrowReserve.info.liquidity.mintPubkey.toString(),
-                        borrowApy,
-                        depositApy, 
-                        supplied: false
+                        setCollateralizedPositions((prev) => [...prev, cp])
                     }
-                    setCollateralizedPositions((prev) => [...prev, cp])
                 })
             })
         }

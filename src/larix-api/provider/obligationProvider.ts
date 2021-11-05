@@ -43,7 +43,7 @@ export async function getObligation(ownerAddress:PublicKey):Promise<Array<Detail
     const resultArray = new Array<Detail<Obligation>>();
     accountInfos.map(function (item):any{
         const obligationParser = ObligationParser(item.pubkey,item.account)
-        console.log("obligationParser.info.borrows[0].borrowedAmountWads.toString()",eX(obligationParser.info.borrows[0].borrowedAmountWads.toString(),-18).toString())
+        // console.log("obligationParser.info.borrows[0].borrowedAmountWads.toString()",eX(obligationParser.info.borrows[0].borrowedAmountWads.toString(),-18).toString())
         resultArray.push(obligationParser)
         // if (value.info.lendingMarket.equals(lendingMarketAddress)){
         //

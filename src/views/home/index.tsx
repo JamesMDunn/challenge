@@ -34,11 +34,13 @@ export const HomeView = () => {
       title: 'Borrow Apy',
       dataIndex: 'borrowApy',
       key: 'borrowApy',
+      render: (borrowApy: string) => borrowApy + "%",
     },
     {
       title: 'Deposit Apy',
       dataIndex: 'depositApy',
       key: 'depositApy',
+      render: (depositApy: boolean) => depositApy + "%",
     },
   ];
 
